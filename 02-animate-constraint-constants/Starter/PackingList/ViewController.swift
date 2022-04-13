@@ -38,10 +38,13 @@ final class ViewController: UIViewController {
   @IBOutlet private var tableView: TableView! {
     didSet { tableView.handleSelection = showItem }
   }
-
+  
   @IBOutlet private var menuButton: UIButton!
   @IBOutlet private var titleLabel: UILabel!
-
+  
+  @IBOutlet private var menuHeightConstraint: NSLayoutConstraint!
+  
+  
   //MARK:- Variables
   
   private var slider: HorizontalItemSlider!
@@ -52,7 +55,7 @@ final class ViewController: UIViewController {
 extension ViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
-
+    
     slider = HorizontalItemSlider(in: view) { [unowned self] item in
       self.tableView.addItem(item)
       self.transitionCloseMenu()
@@ -65,8 +68,16 @@ extension ViewController {
 private extension ViewController {
   @IBAction func toggleMenu() {
     menuIsOpen.toggle()
+    menuHeightConstraint.constant = menuIsOpen ? 200 : 80
+    
+    UIView.animate(withDuration: 0.7,
+                   delay: 0,
+                   options: .curveEaseIn) {
+      self.view.layoutIfNeeded()
+    }
+    
   }
-
+  
   func showItem(_ item: Item) {
     let imageView = UIImageView(item: item)
     imageView.backgroundColor = .init(white: 0, alpha: 0.5)
@@ -74,8 +85,26 @@ private extension ViewController {
     imageView.layer.masksToBounds = true
     imageView.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(imageView)
+    
+    let bottomConstraint = imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: imageView.frame.height)
+    let widthConstraint = imageView.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 1/3, constant: -50)
+    
+    NSLayoutConstraint.activate([
+      bottomConstraint,
+      widthConstraint,
+      imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor)
+    ])
+    
+    view.layoutIfNeeded()
+    
+    UIView.animate(withDuration: 0.8, animations: {
+      bottomConstraint.constant = imageView.frame.height * -2
+      widthConstraint.constant = 0
+      self.view.layoutIfNeeded()
+    }, completion: nil)
   }
-
+  
   func transitionCloseMenu() {
     delay(seconds: 0.35, execute: toggleMenu)
   }
