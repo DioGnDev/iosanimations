@@ -34,7 +34,7 @@ import UIKit
 
 final class ViewController: UIViewController {
   @IBOutlet private var background: UIImageView!
-
+  
   @IBOutlet private var stackView: UIStackView! {
     didSet {
       for herb in Herb.all {
@@ -51,24 +51,43 @@ final class ViewController: UIViewController {
         imageView.addGestureRecognizer(
           TapGestureRecognizer { [unowned self, unowned imageView] in
             self.selectedImage = imageView
-
+            
             let herbDetails: HerbDetailsViewController = .instantiate {
               .init(coder: $0, herb: herb)
             }!
+            herbDetails.transitioningDelegate = self
             self.present(herbDetails, animated: true)
           }
         )
       }
     }
   }
-
+  
+  private let popAnimator = PopAnimator()
   private(set) var selectedImage: UIImageView!
+}
+
+//MARK:- UIViewControllerTransitionDelegate
+extension ViewController: UIViewControllerTransitioningDelegate {
+  
+  func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+    selectedImage.alpha = .zero
+    popAnimator.originFrame = selectedImage.superview!.convert(selectedImage.frame, to: nil)
+    popAnimator.presenting = true
+    return popAnimator
+  }
+  
+  public func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+    popAnimator.presenting = false
+    return popAnimator
+  }
+  
 }
 
 //MARK:- UIViewController
 extension ViewController {
   override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
-
+  
   override func viewWillTransition(
     to size: CGSize,
     with coordinator: UIViewControllerTransitionCoordinator

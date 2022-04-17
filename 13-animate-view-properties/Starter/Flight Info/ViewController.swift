@@ -46,7 +46,7 @@ class ViewController: UIViewController {
   
   @IBOutlet var statusLabel: UILabel!
   @IBOutlet var statusBanner: UIImageView!
-
+  
   private let snowView = SnowView( frame: .init(x: -150, y:-100, width: 300, height: 50) )
 }
 
@@ -54,13 +54,13 @@ class ViewController: UIViewController {
 extension ViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
-
+    
     // Add the snow effect layer
     let snowClipView = UIView( frame: view.frame.offsetBy(dx: 0, dy: 50) )
     snowClipView.clipsToBounds = true
     snowClipView.addSubview(snowView)
     view.addSubview(snowClipView)
-
+    
     // Start rotating the flights
     changeFlight(to: .londonToParis, animated: false)
   }
@@ -68,43 +68,98 @@ extension ViewController {
 
 private extension ViewController {
   //MARK:- Animations
-
+  
   func fade(to image: UIImage, showEffects: Bool) {
-		//TODO: Create a crossfade animation for the background
-
-    //TODO: Create a fade animation for snowView
+    // Create & set up temp view
+    let tempView = UIImageView(frame: background.frame)
+    tempView.image = image
+    tempView.alpha = 0
+    tempView.center.y += 20
+    tempView.bounds.size.width = background.bounds.width * 1.3
+    background.superview!.insertSubview(tempView, aboveSubview: background)
+    
+    UIView.animate(
+      withDuration: 0.5,
+      animations: {
+        // Fade temp view in
+        tempView.alpha = 1
+        tempView.center.y -= 20
+        tempView.bounds.size = self.background.bounds.size
+      },
+      completion: { _ in
+        // Update background view & remove temp view
+        self.background.image = image
+        tempView.removeFromSuperview()
+      }
+    )
+    
+    UIView.animate(withDuration: 1,
+                   delay: 0,
+                   options: .curveEaseOut, animations: {
+      self.snowView.alpha = showEffects ? 1 : 0
+    })
   }
   
   func move(label: UILabel, text: String, offset: CGPoint) {
     //TODO: Animate a label's translation property
+    
+    let tempLabel = duplicate(label)
+    tempLabel.text = text
+    tempLabel.transform = .init(translationX: offset.x, y: offset.y)
+    tempLabel.alpha = 0
+    view.addSubview(tempLabel)
+    
+    //Fade out and transalte real label
+    UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseIn, animations: {
+      label.transform = .init(translationX: offset.x, y: offset.y)
+      label.alpha = 0
+    })
+    
+    //Fade in and translate temp label
+    UIView.animate(withDuration: 0.25, delay: 0.2, options: .curveEaseIn, animations: {
+      tempLabel.transform = .identity
+      tempLabel.alpha = 1
+    }, completion: { _ in
+      label.text = text
+      label.alpha = 1
+      label.transform = .identity
+      tempLabel.removeFromSuperview()
+    })
   }
   
   func cubeTransition(label: UILabel, text: String) {
-		//TODO: Create a faux rotating cube animation
+    //TODO: Create a faux rotating cube animation
   }
   
   func depart() {
-		//TODO: Animate the plane taking off and landing
+    //TODO: Animate the plane taking off and landing
   }
   
   func changeSummary(to summaryText: String) {
-		//TODO: Animate the summary text
+    //TODO: Animate the summary text
   }
-
+  
   func changeFlight(to flight: Flight, animated: Bool = false) {
-		// populate the UI with the next flight's data
-    background.image = UIImage(named: flight.weatherImageName)
-    originLabel.text = flight.origin
-    destinationLabel.text = flight.destination
+    // populate the UI with the next flight's data
     flightNumberLabel.text = flight.number
     gateNumberLabel.text = flight.gateNumber
     statusLabel.text = flight.status
     summary.text = flight.summary
-
+    
     if animated {
-      // TODO: Call your animation
+      fade(to: UIImage(named: flight.weatherImageName)!, showEffects: flight.showWeatherEffects)
+      
+      move(label: originLabel,
+           text: flight.origin,
+           offset: .init(x: -80, y: 0))
+      
+      move(label: destinationLabel,
+           text: flight.destination,
+           offset: .init(x: 80, y: 0))
     } else {
-
+      background.image = UIImage(named: flight.weatherImageName)
+      originLabel.text = flight.origin
+      destinationLabel.text = flight.destination
     }
     
     // schedule next flight
